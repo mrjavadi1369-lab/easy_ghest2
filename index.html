@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>سیستم مدیریت وام</title>
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="مدیریت وام">
+  <meta name="application-name" content="سیستم مدیریت وام">
+  <meta name="description" content="سیستم مدیریت وام و پرداخت اقساط - نسخه حرفه‌ای - ورژن 2026-08-v3.5.4">
+  <meta name="msapplication-TileColor" content="#4f46e5">
+  <meta name="msapplication-TileImage" content="icons/icon-144.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+  
+  <!-- Tailwind (local offline) -->
+  <script src="js/tailwindcss.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            vazir: ["Vazirmatn", "IRANSans", "Tahoma", "Arial"],
+          },
+          colors: {
+            primary: {
+              50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc',
+              400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca',
+              800: '#3730a3', 900: '#312e81'
+            },
+            accent: '#22c55e',
+            danger: '#ef4444'
+          },
+          boxShadow: {
+            soft: '0 8px 30px rgba(0,0,0,.08)'
+          },
+          keyframes: {
+            fadeUp: { '0%': {opacity:0, transform:'translateY(12px)'}, '100%': {opacity:1, transform:'translateY(0)'} },
+          },
+          animation: {
+            fadeUp: 'fadeUp .5s ease-out both',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Fonts & Icons & Charts (local offline) -->
+  <link href="css/vazirmatn.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/all.min.css" />
+  <link rel="stylesheet" href="css/app.css" />
+  <script src="js/chart.umd.min.js"></script>
+  <script src="js/chartjs-plugin-datalabels.min.js"></script>
+  <script src="js/xlsx-js-style.min.js"></script>
+</head>
+
+<body
+ class="gradient-bg text-slate-800">
+  
+  <!-- ====== Toast Notification (شیشه‌ای — بالای صفحه) ====== -->
+  <div id="toast" class="hidden">
+    <div class="toast-content">
+      <i class="fa-solid fa-circle-check toast-icon"></i>
+      <span class="toast-message" id="toast-message">پیام</span>
+    </div>
+  </div>
+
+  <!-- ====== تأیید شیشه‌ای ====== -->
+  <div id="glass-confirm-overlay" class="hidden" role="dialog" aria-modal="true" aria-labelledby="glass-confirm-title">
+    <div id="glass-confirm-box">
+      <div class="gc-title" id="glass-confirm-title">
+        <i class="fa-solid fa-circle-question"></i>
+        <span id="glass-confirm-title-text">تأیید</span>
+      </div>
+      <div class="gc-body" id="glass-confirm-body"></div>
+      <div class="gc-actions">
+        <button type="button" class="gc-cancel" id="glass-confirm-cancel">انصراف</button>
+        <button type="button" class="gc-ok" id="glass-confirm-ok">تأیید</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== Notification Detail Modal ====== -->
+  <div id="notif-detail-overlay" class="notif-detail-overlay hidden" onclick="if(event.target===this) closeNotifDetail()">
+    <div class="notif-detail-box" id="notif-detail-box">
+      <!-- content filled by JS -->
+    </div>
+  </div>
+
+  <!-- Side Menu Overlay -->
+  <div id="side-menu-overlay" class="side-menu-overlay" onclick="closeSideMenu()"></div>
+
+  <!-- Side Menu (همبرگری - سمت راست) -->
+  <aside id="side-menu" class="side-menu" aria-hidden="true">
+    <div class="side-menu-header">
+      <div class="side-menu-title"><i class="fa-solid fa-building-columns me-2 text-indigo-500"></i>منوی اصلی</div>
+      <button type="button" class="side-menu-close" onclick="closeSideMenu()" aria-label="بستن منو">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <nav class="side-menu-nav">
+      <button class="nav-btn" onclick="navigateTo('dashboard')">
+        <i class="fa-solid fa-grid-2"></i>داشبورد
+      </button>
+      <button class="nav-btn" onclick="navigateTo('register-loan')">
+        <i class="fa-solid fa-file-circle-plus"></i>ثبت وام
+      </button>
+      <button class="nav-btn" onclick="navigateTo('manage-loans')">
+        <i class="fa-solid fa-list-check"></i>مدیریت اقساط
+      </button>
+      <button class="nav-btn" onclick="navigateTo('reports')">
+        <i class="fa-solid fa-chart-pie"></i>گزارش‌گیری
+      </button>
+      <button class="nav-btn" onclick="navigateTo('backup-delete')">
+        <i class="fa-solid fa-database"></i>بکاپ و حذف
+      </button>
+      <div class="menu-divider"></div>
+      <button class="nav-btn" onclick="toggleTheme()">
+        <i class="fa-solid fa-moon" id="theme-icon"></i>
+        <span id="theme-label">تم تاریک</span>
+      </button>
+      <button class="nav-btn" onclick="openSettingsModal()">
+        <i class="fa-solid fa-gear"></i>تنظیمات
+      </button>
+      <button class="nav-btn" onclick="openAccountModal()">
+        <i class="fa-solid fa-user-shield"></i>حساب من
+      </button>
+      <button class="nav-btn" onclick="openUsersModal()">
+        <i class="fa-solid fa-users"></i>کاربرها
+      </button>
+      <button class="nav-btn" onclick="exitApp()" style="color:#dc2626;">
+        <i class="fa-solid fa-right-from-bracket"></i>خروج
+      </button>
+    </nav>
+  </aside>
+
+
+  <!-- Login Screen -->
+  <div id="login-screen" class="gradient-bg hidden">
+    <div class="login-card">
+      <div class="login-brand">
+        <i class="fa-solid fa-building-columns"></i>
+        <span>سیستم مدیریت وام</span>
+      </div>
+
+      <div class="login-avatar-wrap">
+        <div class="login-avatar-ring">
+          <img id="login-avatar-img" class="login-avatar-img" alt="آواتار" />
+          <div id="login-avatar-fallback" class="login-avatar-fallback">
+            <i class="fa-solid fa-user"></i>
+          </div>
+        </div>
+        <button type="button" class="login-avatar-edit" onclick="document.getElementById('login-avatar-file').click()" title="انتخاب عکس از گالری">
+          <i class="fa-solid fa-camera"></i>
+        </button>
+        <input type="file" id="login-avatar-file" accept="image/*" hidden onchange="onLoginAvatarSelected(event)" />
+      </div>
+
+      <div class="login-welcome" id="login-welcome-name">خوش آمدید</div>
+      <div class="login-subtitle">برای ادامه وارد حساب خود شوید</div>
+
+      <div class="login-field">
+        <i class="fa-solid fa-user login-field-icon"></i>
+        <select id="login-username" class="login-input" onchange="onLoginUserChange()"></select>
+      </div>
+
+      <div class="login-field">
+        <i class="fa-solid fa-lock login-field-icon"></i>
+        <input id="login-password" type="password" class="login-input" placeholder="رمز عبور" autocomplete="current-password" />
+      </div>
+
+      <button class="login-btn-primary" id="btn-fingerprint-login" onclick="loginWithFingerprint()" style="display:none;">
+        <i class="fa-solid fa-fingerprint"></i>
+        ورود با اثر انگشت
+      </button>
+
+      <button class="login-btn-primary" id="btn-password-login" onclick="doLogin()">
+        <i class="fa-solid fa-right-to-bracket"></i>
+        ورود با رمز
+      </button>
+
+      <button class="login-btn-exit" onclick="forceCloseApp()">
+        <i class="fa-solid fa-power-off"></i>
+        خروج از برنامه
+      </button>
+    </div>
+  </div>
+
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal-overlay" onclick="if(event.target===this)closeSettingsModal()">
+    <div class="modal-box" style="max-width:420px;">
+      <h3><i class="fa-solid fa-gear me-2 text-indigo-500"></i>تنظیمات برنامه</h3>
+      <div class="settings-row">
+        <label>واحد پول</label>
+        <select id="set-currency" class="glass-select" style="max-width:140px;" onchange="saveAppSettings()">
+          <option value="toman">تومان</option>
+          <option value="rial">ریال</option>
+        </select>
+      </div>
+      <div class="settings-row">
+        <label>قفل خودکار (دقیقه)</label>
+        <select id="set-autolock" class="glass-select" style="max-width:140px;" onchange="saveAppSettings()">
+          <option value="0">غیرفعال</option>
+          <option value="1">۱ دقیقه</option>
+          <option value="3">۳ دقیقه</option>
+          <option value="5">۵ دقیقه</option>
+          <option value="10">۱۰ دقیقه</option>
+          <option value="15">۱۵ دقیقه</option>
+        </select>
+      </div>
+      <div class="settings-row">
+        <label>اعلان‌های مرورگر</label>
+        <button class="btn-glass text-sm" onclick="requestNotifPermission()">درخواست مجوز</button>
+      </div>
+      <div class="settings-row">
+        <label>نمایش اعلان برای اقساط معوق</label>
+        <input type="checkbox" id="set-notif-overdue" style="width:18px;height:18px;" onchange="saveAppSettings()" />
+      </div>
+      <div class="settings-row">
+        <label>کارت‌های فشرده (موبایل)</label>
+        <input type="checkbox" id="set-compact" style="width:18px;height:18px;" onchange="saveAppSettings()" />
+      </div>
+      <p class="text-sm" style="color:#94a3b8;margin-top:8px;">قفل خودکار بعد از عدم فعالیت، صفحه ورود را نمایش می‌دهد.</p>
+      <div class="modal-actions">
+        <button class="btn-glass btn-glass-primary" onclick="closeSettingsModal()">بستن</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Account Modal (single user edit/add) -->
+  <div id="account-modal" class="modal-overlay" onclick="if(event.target===this)closeAccountModal()">
+    <div class="modal-box">
+      <h3 id="account-modal-title"><i class="fa-solid fa-user-shield me-2 text-indigo-500"></i>حساب کاربری</h3>
+      <input type="hidden" id="acc-user-id" value="" />
+      <div class="login-avatar-wrap" style="margin: 8px auto 16px;">
+        <div class="login-avatar-ring" style="width:96px;height:96px;">
+          <img id="acc-avatar-img" class="login-avatar-img" alt="آواتار" />
+          <div id="acc-avatar-fallback" class="login-avatar-fallback"><i class="fa-solid fa-user"></i></div>
+        </div>
+        <button type="button" class="login-avatar-edit" onclick="document.getElementById('acc-avatar-file').click()" title="انتخاب عکس">
+          <i class="fa-solid fa-camera"></i>
+        </button>
+        <input type="file" id="acc-avatar-file" accept="image/*" hidden onchange="onAccountAvatarSelected(event)" />
+      </div>
+      <input type="hidden" id="acc-avatar-data" value="" />
+      <label>نام کاربری
+        <input id="acc-username" type="text" class="glass-input" placeholder="مثلاً: مدیر" />
+      </label>
+      <label>رمز عبور جدید
+        <input id="acc-password" type="password" class="glass-input" placeholder="حداقل ۴ کاراکتر" autocomplete="new-password" />
+      </label>
+      <label>تکرار رمز عبور
+        <input id="acc-password2" type="password" class="glass-input" placeholder="تکرار رمز" autocomplete="new-password" />
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;flex-direction:row;">
+        <input id="acc-fingerprint" type="checkbox" style="width:18px;height:18px;" />
+        <span>فعال‌سازی ورود با اثر انگشت / بیومتریک</span>
+      </label>
+      <p id="webauthn-status" class="text-sm" style="color:#94a3b8;margin-top:4px;"></p>
+      <p class="text-sm" style="color:#94a3b8;margin-top:4px;">برای کاربر جدید وارد کردن رمز الزامی است.</p>
+      <div class="modal-actions">
+        <button class="btn-glass btn-glass-primary" onclick="saveAccountSettings()">
+          <i class="fa-solid fa-floppy-disk me-1"></i>ذخیره
+        </button>
+        <button class="btn-glass" onclick="closeAccountModal()">انصراف</button>
+        <button class="btn-glass btn-glass-danger" id="btn-delete-account" onclick="deleteCurrentEditingUser()">
+          <i class="fa-solid fa-trash me-1"></i>حذف
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Users Management Modal -->
+  <div id="users-modal" class="modal-overlay" onclick="if(event.target===this)closeUsersModal()">
+    <div class="modal-box" style="max-width:480px;">
+      <h3><i class="fa-solid fa-users me-2 text-indigo-500"></i>مدیریت کاربرها</h3>
+      <div id="users-list" class="space-y-2 mb-4" style="max-height:45vh;overflow-y:auto;"></div>
+      <div class="modal-actions">
+        <button class="btn-glass btn-glass-primary" onclick="openAccountModal(null)">
+          <i class="fa-solid fa-user-plus me-1"></i>افزودن کاربر
+        </button>
+        <button class="btn-glass" onclick="closeUsersModal()">بستن</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Bar -->
+  <div id="sw-update-banner" role="status">
+    <span>نسخه جدید برنامه آماده است</span>
+    <button type="button" onclick="applySwUpdate()">بروزرسانی</button>
+  </div>
+  <div class="fab-stack" id="fab-stack">
+    <button type="button" class="fab-glass" id="fab-quick-pay" onclick="quickPayFab()" title="ثبت وام جدید" aria-label="ثبت وام جدید">
+      <i class="fa-solid fa-plus"></i>
+    </button>
+    <button type="button" class="fab-glass" id="fab-home" onclick="goHomeFab()" title="داشبورد" aria-label="داشبورد">
+      <i class="fa-solid fa-house"></i>
+    </button>
+    <button type="button" class="fab-glass" id="fab-boost" onclick="boostAppSpeed()" title="افزایش سرعت (پاک‌سازی کش)" aria-label="افزایش سرعت">
+      <i class="fa-solid fa-rocket"></i>
+    </button>
+  </div>
+  <header class="app-header w-full sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-2">
+      <div class="app-header-bar">
+        <div class="app-header-spacer" aria-hidden="true"></div>
+        <div class="app-header-title">
+          <i class="fa-solid fa-building-columns"></i>
+          <span>سیستم مدیریت وام</span>
+        </div>
+        <div class="header-actions">
+          <button type="button" id="menu-toggle" class="menu-toggle" onclick="toggleSideMenu()" aria-label="باز کردن منو">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+  <main class="max-w-7xl mx-auto px-4 md:px-6 py-6 grid gap-6">
+    <!-- Dashboard -->
+    <section id="dashboard" class="grid gap-6">
+      <!-- KPIs -->
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div class="kpi-card">
+          <div class="kpi-icon text-indigo-500"><i class="fa-solid fa-layer-group"></i></div>
+          <div class="kpi-label">تعداد وام‌ها</div>
+          <div class="kpi-value" id="kpi-total-loans">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon text-emerald-500"><i class="fa-solid fa-sack-dollar"></i></div>
+          <div class="kpi-label">جمع کل وام‌ها</div>
+          <div class="kpi-value" id="kpi-sum-amount">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon text-blue-500"><i class="fa-solid fa-circle-check"></i></div>
+          <div class="kpi-label">پرداخت‌شده</div>
+          <div class="kpi-value" id="kpi-paid">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon text-rose-500"><i class="fa-solid fa-wallet"></i></div>
+          <div class="kpi-label">مانده وام‌ها</div>
+          <div class="kpi-value" id="kpi-remaining">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon text-amber-500"><i class="fa-solid fa-hourglass-half"></i></div>
+          <div class="kpi-label">مانده اقساط</div>
+          <div class="kpi-value" id="kpi-remaining-count">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon text-purple-500"><i class="fa-solid fa-money-bill-wave"></i></div>
+          <div class="kpi-label">جمع مبلغ اقساط</div>
+          <div class="kpi-value" id="kpi-total-installments">0</div>
+        </div>
+      </div>
+      
+      <div class="glass-divider"></div>
+      
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <h3 class="page-title">
+          <i class="fa-solid fa-list"></i>لیست وام‌ها
+        </h3>
+        <span class="text-glass-light text-sm">
+          <i class="fa-solid fa-arrows-up-down me-1"></i>
+          برای جابه‌جایی کارت‌ها بکشید و رها کنید
+        </span>
+      </div>
+      
+
+      <div class="dash-toolbar" id="dash-toolbar">
+        <input type="search" id="dash-search" class="glass-input" placeholder="جستجوی نام وام..." oninput="renderLoanCards()" />
+        <div class="dash-filter-btns">
+          <button type="button" class="dash-filter-btn active" data-filter="all" onclick="setDashFilter('all')">همه</button>
+          <button type="button" class="dash-filter-btn" data-filter="active" onclick="setDashFilter('active')">فعال</button>
+          <button type="button" class="dash-filter-btn" data-filter="overdue" onclick="setDashFilter('overdue')">معوق</button>
+          <button type="button" class="dash-filter-btn" data-filter="done" onclick="setDashFilter('done')">تسویه‌شده</button>
+        </div>
+      </div>
+
+      <!-- کارت‌های نمایش وام‌ها با قابلیت Drag & Drop -->
+      <div id="loans-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- کارت‌های وام به صورت داینامیک در اینجا نمایش داده می‌شوند -->
+      </div>
+      
+      <div class="glass-divider"></div>
+      
+      <div class="flex flex-wrap items-center justify-center gap-4 text-glass">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-building-columns text-indigo-500"></i>
+          <span>سیستم مدیریت وام و پرداخت اقساط - نسخه حرفه‌ای - ورژن 2026-08-v3.5.4</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-user text-blue-500"></i>
+          <span>برنامه‌نویس : محمدرضا جوادی</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Register Loan -->
+    <section id="register-loan" class="hidden grid gap-6">
+      <!-- ماشین‌حساب اقساط (مشابه باحساب) — فشرده -->
+      <div class="glass rounded-2xl p-4 border border-white/30">
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <h2 class="page-title text-lg mb-0"><i class="fa-solid fa-calculator"></i>محاسبه اقساط وام</h2>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+          <label class="grid gap-0.5 text-glass-light text-xs sm:text-sm">نوع محاسبه
+            <select id="calc-loan-type" class="glass-select text-sm py-1.5">
+              <option value="bank">بانکی (اقساط مساوی)</option>
+              <option value="qarz">قرض‌الحسنه</option>
+            </select>
+          </label>
+          <label class="grid gap-0.5 text-glass-light text-xs sm:text-sm" id="calc-amount-label">مبلغ وام (تومان)
+            <input id="calc-amount" type="text" inputmode="numeric" class="glass-input text-sm py-1.5" oninput="formatNumber(this)" placeholder="۱۰۰٬۰۰۰٬۰۰۰" />
+          </label>
+          <label class="grid gap-0.5 text-glass-light text-xs sm:text-sm" id="calc-rate-label">نرخ (٪)
+            <input id="calc-rate" type="text" inputmode="decimal" class="glass-input text-sm py-1.5" oninput="formatRateInput(this)" placeholder="۱۸" />
+          </label>
+          <label class="grid gap-0.5 text-glass-light text-xs sm:text-sm">تعداد اقساط
+            <input id="calc-count" type="text" inputmode="numeric" class="glass-input text-sm py-1.5" oninput="formatCountInput(this)" placeholder="۳۶" />
+          </label>
+          <label class="grid gap-0.5 text-glass-light text-xs sm:text-sm">فاصله
+            <select id="calc-interval" class="glass-select text-sm py-1.5">
+              <option value="1">ماهانه</option>
+              <option value="3">سه‌ماهه</option>
+              <option value="6">شش‌ماهه</option>
+              <option value="12">سالانه</option>
+            </select>
+          </label>
+        </div>
+        <div class="flex flex-wrap gap-2 mt-3">
+          <button type="button" class="btn-glass btn-glass-primary text-sm py-1.5 px-3" onclick="runLoanCalculator()">
+            <i class="fa-solid fa-calculator me-1"></i>محاسبه
+          </button>
+        </div>
+        <div id="calc-result-box" class="hidden mt-3 rounded-xl p-3 border border-indigo-200/50 bg-indigo-50/40">
+          <div class="grid grid-cols-3 gap-2 text-xs sm:text-sm">
+            <div>
+              <div class="text-glass-light">مبلغ هر قسط</div>
+              <div class="text-base sm:text-lg font-bold text-indigo-700" id="calc-out-installment">—</div>
+            </div>
+            <div>
+              <div class="text-glass-light">جمع پرداختی</div>
+              <div class="font-semibold text-slate-800" id="calc-out-total">—</div>
+            </div>
+            <div>
+              <div class="text-glass-light" id="calc-out-extra-label">جمع سود / کارمزد</div>
+              <div class="font-semibold text-rose-600" id="calc-out-extra">—</div>
+            </div>
+          </div>
+          <p class="text-xs text-glass-light mt-2" id="calc-out-hint"></p>
+          <div class="flex flex-wrap gap-2 mt-3">
+            <button type="button" class="btn-glass btn-glass-success text-sm py-1.5 px-3" onclick="applyCalcToRegisterForm()">
+              <i class="fa-solid fa-check me-1"></i>تأیید و انتقال به فرم ثبت
+            </button>
+            <button type="button" class="btn-glass text-sm py-1.5 px-3" onclick="clearLoanCalculator()">
+              <i class="fa-solid fa-eraser me-1"></i>پاک کردن
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass rounded-2xl p-4 border border-white/30">
+        <h2 class="page-title text-lg mb-3"><i class="fa-solid fa-file-circle-plus"></i>ثبت وام</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+          <label class="grid gap-0.5 text-glass-light text-xs sm:text-sm">نام وام
+            <input id="loan-name" type="text" class="glass-input text-sm py-1.5" placeholder="وام مسکن" />
+          </label>
+          <label class="grid gap-0.5 text-glass-light text-xs sm:text-sm" id="loan-amount-label">مبلغ کل وام (تومان)
+            <input id="loan-amount" type="text" inputmode="numeric" class="glass-input text-sm py-1.5" oninput="formatNumber(this)" placeholder="۱٬۲۰۰٬۰۰۰٬۰۰۰" />
+          </label>
+          <label class="grid gap-0.5 text-glass-light text-xs sm:text-sm" id="installment-amount-label">مبلغ هر قسط (تومان)
+            <input id="installment-amount" type="text" inputmode="numeric" class="glass-input text-sm py-1.5" oninput="formatNumber(this)" placeholder="۲۵٬۰۰۰٬۰۰۰" />
+          </label>
+          <label class="grid gap-0.5 text-glass-light text-xs sm:text-sm">تعداد اقساط
+            <input id="installment-count" type="text" inputmode="numeric" class="glass-input text-sm py-1.5" oninput="formatCountInput(this)" placeholder="۴۸" />
+          </label>
+          <label class="grid gap-0.5 text-glass-light text-xs sm:text-sm">تاریخ شروع
+            <input id="start-date" type="text" class="glass-input text-sm py-1.5" placeholder="۰۱-۰۱-۱۴۰۵" />
+          </label>
+        </div>
+        <div class="flex flex-wrap gap-2 mt-3">
+          <button class="btn-glass btn-glass-success text-sm py-1.5 px-3" onclick="createAndSaveLoan()">
+            <i class="fa-solid fa-floppy-disk me-1"></i>ساخت جدول و ثبت وام
+          </button>
+        </div>
+        <div class="mt-3 table-glass">
+          <table class="w-full text-sm">
+            <thead class="table-glass-header sticky-th">
+              <tr>
+                <th class="p-2 text-center">شماره قسط</th>
+                <th class="p-2 text-center">تاریخ قسط</th>
+                <th class="p-2 text-center" id="installment-pay-header">پرداخت (تومان)</th>
+              </tr>
+            </thead>
+            <tbody id="installment-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Manage Installments -->
+    <section id="manage-loans" class="hidden">
+      <div class="glass rounded-2xl border border-white/30">
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <h2 class="page-title text-lg sm:text-xl"><i class="fa-solid fa-list-check"></i>مدیریت اقساط</h2>
+        </div>
+        <div class="manage-controls">
+          <div class="manage-controls-row">
+            <select id="manage-loan-select" class="glass-select" onchange="loadLoanForManagement()">
+              <option value="">-- انتخاب وام --</option>
+            </select>
+            <input id="manage-filter" type="text" placeholder="جستجو شماره یا تاریخ" class="glass-input" oninput="debouncedUpdateManageInstallmentTable()" />
+          </div>
+          <div class="manage-controls-row">
+            <input type="text" inputmode="numeric" id="batch-pay-start" class="glass-input" style="flex:0 0 90px;max-width:90px;" oninput="formatCountInput(this)" placeholder="شروع از" />
+            <input type="text" inputmode="numeric" id="batch-pay-count" class="glass-input" style="flex:0 0 80px;max-width:80px;" oninput="formatCountInput(this)" placeholder="تعداد" />
+            <button class="btn-glass btn-glass-success" onclick="batchPayInstallments()">
+              <i class="fa-solid fa-bolt me-1"></i>ثبت گروهی
+            </button>
+            <button class="btn-glass" style="background:rgba(239,68,68,0.12);color:#dc2626;" onclick="payAllOverdue()">
+              <i class="fa-solid fa-triangle-exclamation me-1"></i>پرداخت همه معوق‌ها
+            </button>
+            <button class="btn-glass btn-glass-primary" onclick="saveManage()">
+              <i class="fa-solid fa-floppy-disk me-1"></i>ذخیره
+            </button>
+          </div>
+        </div>
+        
+        <!-- لیست کارت‌ها (موبایل) -->
+        <div id="manage-installments-list"></div>
+        
+        <!-- جدول (دسکتاپ) -->
+        <div class="table-container">
+          <div class="table-glass">
+            <table class="w-full text-sm">
+              <thead class="table-glass-header sticky-th">
+                <tr>
+                  <th class="p-3 text-right">#</th>
+                  <th class="p-3 text-right">تاریخ</th>
+                  <th class="p-3 text-right">مبلغ</th>
+                  <th class="p-3 text-right">وضعیت</th>
+                  <th class="p-3 text-right">عملیات</th>
+                </tr>
+              </thead>
+              <tbody id="manage-installment-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+        
+        <p class="text-glass-light text-sm mt-3">
+          <i class="fa-solid fa-circle-info me-1"></i>
+          راهنما: قسط سررسیدشده و پرداخت‌نشده با پس‌زمینه چشمک‌زن نمایش داده می‌شود.
+        </p>
+      </div>
+    </section>
+
+    <!-- Reports -->
+    <section id="reports" class="hidden grid gap-6">
+      <div class="glass rounded-2xl p-4 md:p-6 border border-white/30">
+        <h2 class="page-title text-xl mb-4"><i class="fa-solid fa-chart-pie"></i>گزارش‌گیری</h2>
+
+        <!-- انتخاب وام -->
+        <div class="mb-4">
+          <label class="text-glass-light text-sm mb-1 block">انتخاب وام</label>
+          <select id="report-loan-select" class="glass-select w-full" onchange="showLoanReport()">
+            <option value="">-- انتخاب وام --</option>
+          </select>
+        </div>
+
+        <!-- دکمه‌های عملیات وام -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+          <button class="btn-glass text-sm justify-center" onclick="printRepayment()">
+            <i class="fa-solid fa-print me-1"></i>چاپ
+          </button>
+          <button class="btn-glass text-sm justify-center" onclick="exportLoanPDF()" style="background:rgba(239,68,68,0.1);color:#dc2626;">
+            <i class="fa-solid fa-file-pdf me-1"></i>PDF
+          </button>
+          <button class="btn-glass btn-glass-success text-sm justify-center" onclick="exportLoanExcel()">
+            <i class="fa-solid fa-file-excel me-1"></i>اکسل
+          </button>
+          <button class="btn-glass btn-glass-primary text-sm justify-center" onclick="shareLoanReport()">
+            <i class="fa-solid fa-share-nodes me-1"></i>اشتراک
+          </button>
+        </div>
+
+        <!-- دکمه‌های گزارش کلی -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-5">
+          <button class="btn-glass text-sm justify-center" onclick="printAllLoansReport()">
+            <i class="fa-solid fa-print me-1"></i>چاپ وضعیت
+          </button>
+          <button class="btn-glass text-sm justify-center" onclick="exportAllLoansPDF()" style="background:rgba(239,68,68,0.1);color:#dc2626;">
+            <i class="fa-solid fa-file-pdf me-1"></i>PDF کل
+          </button>
+          <button class="btn-glass btn-glass-success text-sm justify-center" onclick="exportAllLoansExcel()">
+            <i class="fa-solid fa-file-excel me-1"></i>اکسل کل
+          </button>
+          <button class="btn-glass btn-glass-primary text-sm justify-center" onclick="showAllLoansReport()">
+            <i class="fa-solid fa-table me-1"></i>گزارش کل
+          </button>
+        </div>
+        
+        <!-- گزارش وام انتخاب شده -->
+        <div id="loan-report" class="hidden ">
+          <h3 class="page-title text-lg mb-3"><i class="fa-solid fa-chart-simple"></i>گزارش وام انتخاب شده</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 glass p-4 rounded-xl mb-4 border border-white/30">
+            <div class="text-glass text-sm">نام وام: <span id="report-loan-name" class="text-slate-800 font-semibold">—</span></div>
+            <div class="text-glass text-sm">مبلغ وام: <span id="report-loan-amount" class="text-slate-800 font-semibold">0</span></div>
+            <div class="text-glass text-sm">مبلغ هر قسط: <span id="report-installment-amount" class="text-slate-800 font-semibold">0</span></div>
+            <div class="text-glass text-sm">پرداخت‌شده: <span id="report-paid-count" class="text-slate-800 font-semibold">0</span></div>
+            <div class="text-glass text-sm">اقساط مانده: <span id="report-remaining-count" class="text-slate-800 font-semibold">0</span></div>
+            <div class="text-glass text-sm">پیشرفت: <span id="report-progress" class="text-slate-800 font-semibold">0%</span></div>
+            <div class="sm:col-span-2 md:col-span-3 text-glass text-sm">تاریخ تسویه: <span id="report-end-date" class="text-slate-800 font-semibold">—</span></div>
+          </div>
+          <div class="grid grid-cols-1 gap-4 mb-6">
+            <div class="glass rounded-xl p-4 border border-white/30">
+              <h4 class="text-glass font-medium mb-2 text-center">پیشرفت بازپرداخت</h4>
+              <div class="mx-auto" style="max-width:260px;height:220px;"><canvas id="progress-chart"></canvas></div>
+            </div>
+            <div class="glass rounded-xl p-3 md:p-4 border border-white/30">
+              <h4 class="text-glass font-medium mb-3 text-center">جدول اقساط</h4>
+              <div class="report-inst-table-wrap">
+                <table class="w-full text-sm report-inst-table">
+                  <thead class="table-glass-header sticky-th">
+                    <tr>
+                      <th class="p-2 md:p-3 text-center">#</th>
+                      <th class="p-2 md:p-3 text-center">تاریخ</th>
+                      <th class="p-2 md:p-3 text-center">مبلغ</th>
+                      <th class="p-2 md:p-3 text-center">وضعیت</th>
+                    </tr>
+                  </thead>
+                  <tbody id="report-installments-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- گزارش کل وام‌ها -->
+        <div id="all-loans-report" class="hidden ">
+          <h3 class="page-title text-lg mb-3"><i class="fa-solid fa-table"></i>گزارش کل وام‌ها</h3>
+          <div id="all-loans-cards" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+          <!-- جدول دسکتاپ (مخفی روی موبایل) -->
+          <div class="hidden md:block mt-4">
+            <div class="table-glass report-table-wrap">
+              <table class="w-full text-sm text-center report-all-table">
+                <thead class="table-glass-header">
+                  <tr>
+                    <th class="p-3 text-center">نام وام</th>
+                    <th class="p-3 text-center">مبلغ وام</th>
+                    <th class="p-3 text-center">مبلغ قسط</th>
+                    <th class="p-3 text-center">تعداد اقساط</th>
+                    <th class="p-3 text-center">اقساط پرداختی</th>
+                    <th class="p-3 text-center">اقساط مانده</th>
+                    <th class="p-3 text-center">تاریخ تسویه</th>
+                  </tr>
+                </thead>
+                <tbody id="all-loans-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Backup & Delete -->
+    <section id="backup-delete" class="hidden grid gap-4">
+      <div class="glass rounded-2xl p-4 border border-white/30">
+        <h2 class="page-title text-lg mb-3"><i class="fa-solid fa-database"></i>بکاپ و حذف</h2>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div class="glass-card rounded-xl p-3 border border-white/30 text-center">
+            <div class="flex items-center justify-center gap-2 mb-2">
+              <i class="fa-solid fa-download text-2xl text-emerald-500"></i>
+              <h3 class="text-slate-800 text-sm font-semibold">تهیه نسخه پشتیبان</h3>
+            </div>
+            <div class="flex flex-wrap gap-2 justify-center">
+              <button class="btn-glass btn-glass-success text-sm py-1.5 px-3" onclick="backupData()">
+                <i class="fa-solid fa-upload me-1"></i>پشتیبان JSON
+              </button>
+              <button class="btn-glass text-sm py-1.5 px-3" onclick="exportFullExcelBackup()">
+                <i class="fa-solid fa-file-excel me-1"></i>اکسل کامل
+              </button>
+            </div>
+            <p id="last-backup-info" class="text-glass-light text-xs mt-2" style="min-height:1em;"></p>
+            <div class="mt-2 pt-2 border-t border-white/20">
+              <div class="flex flex-wrap gap-2 justify-center">
+                <button type="button" class="btn-glass btn-glass-primary text-sm py-1.5 px-3" onclick="pickBackupFolder()">
+                  <i class="fa-solid fa-folder-plus me-1"></i>انتخاب پوشه
+                </button>
+                <button type="button" class="btn-glass text-sm py-1.5 px-3" onclick="clearBackupFolder()" id="btn-clear-folder" style="display:none;">
+                  <i class="fa-solid fa-link-slash me-1"></i>لغو پوشه
+                </button>
+              </div>
+              <p id="backup-folder-status" class="text-glass-light text-xs mt-2 text-center" style="min-height:1em;"></p>
+            </div>
+          </div>
+          
+          <div class="glass-card rounded-xl p-3 border border-white/30 text-center">
+            <div class="flex items-center justify-center gap-2 mb-2">
+              <i class="fa-solid fa-upload text-2xl text-blue-500"></i>
+              <h3 class="text-slate-800 text-sm font-semibold">افزودن فایل پشتیبان</h3>
+            </div>
+            <button class="btn-glass btn-glass-primary text-sm py-1.5 px-3" onclick="document.getElementById('backupFileInput').click()">
+              <i class="fa-solid fa-download me-1"></i>بارگذاری پشتیبان
+            </button>
+            <input type="file" id="backupFileInput" hidden onchange="importData(event)">
+          </div>
+        </div>
+        
+        <div class="glass-card rounded-xl p-3 border border-white/30">
+          <h3 class="text-slate-800 text-sm font-semibold mb-2 text-center">حذف وام تسویه‌شده</h3>
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-2">
+            <select id="delete-loan-select" class="glass-select text-sm py-1.5 min-w-[200px]">
+              <option value="">-- انتخاب وام --</option>
+            </select>
+            <button class="btn-glass btn-glass-danger text-sm py-1.5 px-3" onclick="deleteLoan()">
+              <i class="fa-solid fa-trash me-1"></i>حذف وام
+            </button>
+          </div>
+          <p class="text-glass-light text-xs mt-2 text-center">
+            <i class="fa-solid fa-triangle-exclamation text-amber-500 me-1"></i>
+            حذف برگشت‌ناپذیر است — قبلش بکاپ بگیرید.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Print -->
+    <section id="print-area" class="hidden"></section>
+  </main>
+
+
+  <script src="js/app.js"></script>
+</body>
+</html>
